@@ -1,6 +1,7 @@
 import os
 import sys
 import signal
+import subprocess
 
 from PyQt5.QtWidgets import QApplication, QMainWindow, QToolBar, QLabel, QWidget, QSizePolicy, QAction
 from PyQt5.QtCore import Qt
