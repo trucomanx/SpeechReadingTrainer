@@ -2,7 +2,7 @@
 
 A desktop application that helps users improve reading fluency and pronunciation by combining text-to-speech playback, voice recording, automatic transcription, and real-time accuracy feedback.
 
-![logo](screenshot.png)
+![logo](https://raw.githubusercontent.com/trucomanx/SpeechReadingTrainer/main/screenshot.png)
 
 ## 1. Installing
 
@@ -24,7 +24,7 @@ speech-reading-trainer
 ```
 ## 2. More information
 
-If you want more information go to [doc](https://github.com/trucomanx/SpeechReadingTrainer/blob/main/doc) directory
+If you want more information go to [doc](https://github.com/trucomanx/SpeechReadingTrainer/blob/main/doc) directory.
 
 ## 3. Buy me a coffee
 
