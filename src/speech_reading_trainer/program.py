@@ -10,9 +10,9 @@ import subprocess
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QPushButton, QTextEdit, QLabel,
     QProgressBar, QFileDialog, QVBoxLayout, QWidget, QHBoxLayout,
-    QSizePolicy, QAction, QMessageBox
+    QSizePolicy, QAction, QMessageBox, QListView, QSplitter
 )
-from PyQt5.QtCore import Qt, pyqtSignal, QUrl
+from PyQt5.QtCore import Qt, pyqtSignal, QUrl, QStringListModel
 from PyQt5.QtGui import QIcon, QDesktopServices
 
 import speech_recognition as sr
@@ -24,10 +24,8 @@ from pydub.playback import play
 import speech_reading_trainer.about as about
 import speech_reading_trainer.modules.configure as configure 
 from speech_reading_trainer.modules.resources import resource_path
-
 from speech_reading_trainer.modules.wabout    import show_about_window
 from speech_reading_trainer.desktop import create_desktop_file, create_desktop_directory, create_desktop_menu
-
 
 # ---------- Path to config file ----------
 CONFIG_PATH = os.path.join( os.path.expanduser("~"),
@@ -85,9 +83,8 @@ DEFAULT_CONTENT={
     "final_message": "Finished! Final Accuracy: {value:.2f}%"
 }
 
-configure.verify_default_config(CONFIG_PATH,default_content=DEFAULT_CONTENT)
-
-CONFIG=configure.load_config(CONFIG_PATH)
+configure.verify_default_config(CONFIG_PATH, default_content=DEFAULT_CONTENT)
+CONFIG = configure.load_config(CONFIG_PATH)
 
 # ---------------------------------------
 
@@ -149,6 +146,17 @@ def comparar_frases_bag_of_words(original, transcrito):
     acertos = len(original_words & transcrito_words)
     total = len(original_words)
     return acertos, total
+
+
+def palavras_faltantes(original, transcrito):
+    """
+    Retorna as palavras que estão na frase original
+    mas não apareceram na transcrição.
+    """
+    trad = str.maketrans("", "", string.punctuation)
+    original_words = set(original.translate(trad).lower().split())
+    transcrito_words = set(transcrito.translate(trad).lower().split())
+    return original_words - transcrito_words
 
 
 def gravar_audio(destino):
@@ -220,16 +228,23 @@ class SpeechReadingTrainer(QMainWindow):
         self.total_palavras = 0
         self.total_acertos = 0
         self.audio_path = "recorded.wav"
+        self.ultima_transcricao = ""
 
         self.transcricao_pronta.connect(self.atualizar_transcricao)
         self.grava_finalizada.connect(self.gravacao_finalizada)
 
+        # SET acumulativo de palavras erradas
+        self.palavras_erradas = set()
+        self.model_palavras = QStringListModel()
+
         self._create_toolbar()
-                
-        ###########
+
+        # ================= Layout Principal Horizontal =================
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
+        main_layout = QHBoxLayout()
         layout = QVBoxLayout()
+        right_layout = QVBoxLayout()
 
         # Botão abrir arquivo
         self.btn_abrir = QPushButton(CONFIG["button_open_file"])
@@ -313,7 +328,44 @@ class SpeechReadingTrainer(QMainWindow):
         self.btn_avaliar.clicked.connect(self.avaliar)
         layout.addWidget(self.btn_avaliar)
 
-        central_widget.setLayout(layout)
+        # ----- Painel direito -----
+        self.list_view = QListView()
+        self.list_view.setModel(self.model_palavras)
+        right_layout.addWidget(self.list_view)
+
+        self.btn_salvar_lista = QPushButton("Save Missing Words")
+        self.btn_salvar_lista.setIcon(QIcon.fromTheme("document-save"))
+        self.btn_salvar_lista.clicked.connect(self.salvar_palavras_erradas)
+        right_layout.addWidget(self.btn_salvar_lista)
+        
+        self.btn_delete_lista = QPushButton("Delete Missing Words")
+        self.btn_delete_lista.setIcon(QIcon.fromTheme("edit-delete"))
+        self.btn_delete_lista.clicked.connect(self.apagar_lista_palavras)
+        right_layout.addWidget(self.btn_delete_lista)
+
+        # ----- Montagem final -----
+        # ----- Montagem final com QSplitter -----
+
+        splitter = QSplitter(Qt.Horizontal)
+
+        # Widget esquerdo
+        left_widget = QWidget()
+        left_widget.setLayout(layout)
+
+        # Widget direito
+        right_widget = QWidget()
+        right_widget.setLayout(right_layout)
+
+        splitter.addWidget(left_widget)
+        splitter.addWidget(right_widget)
+
+        # tamanho inicial (opcional)
+        splitter.setSizes([800, 200])
+
+        main_layout.addWidget(splitter)
+
+        central_widget.setLayout(main_layout)
+
 
     def _create_toolbar(self):
         self.toolbar = self.addToolBar("Main")
@@ -352,6 +404,19 @@ class SpeechReadingTrainer(QMainWindow):
         self.toolbar.orientationChanged.connect(self.on_update_spacer_policy)
         self.on_update_spacer_policy()
 
+    def apagar_lista_palavras(self):
+        resposta = QMessageBox.question(
+            self,
+            "Confirmar",
+            "Deseja realmente apagar todas as palavras acumuladas?",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+
+        if resposta == QMessageBox.Yes:
+            self.palavras_erradas.clear()
+            self.atualizar_lista_palavras()
+        
     def on_update_spacer_policy(self):
         """Atualiza a política do espaçador baseado na orientação da toolbar"""
         if self.toolbar.orientation() == Qt.Horizontal:
@@ -366,10 +431,7 @@ class SpeechReadingTrainer(QMainWindow):
             os.startfile(filepath)
         elif os.name == 'posix':  # Linux/macOS
             subprocess.run(['xdg-open', filepath])
-    
-    def open_url_usage_editor(self):
-        QDesktopServices.openUrl(QUrl(CONFIG_GPT["usage"]))
-        
+            
     def open_configure_editor(self):
         self._open_file_in_text_editor(CONFIG_PATH)
 
@@ -403,12 +465,25 @@ class SpeechReadingTrainer(QMainWindow):
             CONFIG["file_dialog_filter"]
         )
         if arquivo:
+            self.ultima_transcricao = ""
+            
+            # Reset estatísticas (mas NÃO as palavras erradas)
+            self.total_acertos = 0
+            self.total_palavras = 0
+            self.atualizar_acuracia()
+
             self.frases = ler_e_separar_texto(arquivo)
             self.index_frase = 0
+            
+            if not self.frases:
+                QMessageBox.warning(self, "Warning", "The selected file has no valid sentences.")
+                return
+            
             self.progress.setMaximum(len(self.frases))
             self.progress.setValue(0)
+
             self.text_frase.setText(self.frases[self.index_frase])
-            self.atualizar_acuracia()
+            
             self.btn_tts.setEnabled(True)
             self.btn_gravar.setEnabled(True)
             self.btn_parar.setEnabled(True)
@@ -427,8 +502,8 @@ class SpeechReadingTrainer(QMainWindow):
     def _gravar_thread(self):
         gravar_audio(self.audio_path)
         frase = self.frases[self.index_frase]
-        transcrito = transcrever_audio(self.audio_path)
-        html = transcricao_com_cores(transcrito, frase)
+        self.ultima_transcricao = transcrever_audio(self.audio_path)
+        html = transcricao_com_cores(self.ultima_transcricao, frase)
         self.transcricao_pronta.emit(html)
         self.grava_finalizada.emit()
 
@@ -452,8 +527,11 @@ class SpeechReadingTrainer(QMainWindow):
     def avaliar(self):
         if not os.path.exists(self.audio_path):
             return
+
         frase = self.frases[self.index_frase]
-        transcrito = transcrever_audio(self.audio_path)
+        transcrito = self.ultima_transcricao
+        if not self.ultima_transcricao:
+            return
 
         # Exibe transcrição colorida imediatamente
         html = transcricao_com_cores(transcrito, frase)
@@ -465,9 +543,14 @@ class SpeechReadingTrainer(QMainWindow):
         self.total_palavras += total
         self.atualizar_acuracia()
 
+        faltantes = palavras_faltantes(frase, transcrito)
+        self.palavras_erradas.update(faltantes)
+        self.atualizar_lista_palavras()
+
         # Avança para próxima frase
         self.index_frase += 1
         self.progress.setValue(self.index_frase)
+
         if self.index_frase < len(self.frases):
             self.text_frase.setText(self.frases[self.index_frase])
             self.text_transcrito.clear()
@@ -480,13 +563,15 @@ class SpeechReadingTrainer(QMainWindow):
             msg.setWindowTitle(about.__program_name__)
             msg.setText(mensagem_final)
 
+            icon = QIcon()
+            
             # Ícone customizado do tema
-            if   precisao>83.3333:
-                icon = QIcon.fromTheme("trophy-bronze")
-            elif precisao>66.6667:
-                icon = QIcon.fromTheme("trophy-silver")
-            elif precisao>50:
+            if   precisao>=83.3333:
                 icon = QIcon.fromTheme("trophy-gold")
+            elif precisao>=66.6667:
+                icon = QIcon.fromTheme("trophy-silver")
+            elif precisao>=50:
+                icon = QIcon.fromTheme("trophy-bronze")
             
             if not icon.isNull():
                 msg.setIconPixmap(icon.pixmap(64, 64))
@@ -503,6 +588,26 @@ class SpeechReadingTrainer(QMainWindow):
             self.btn_parar.setEnabled(False)
             self.btn_ouvir.setEnabled(False)
             self.btn_avaliar.setEnabled(False)
+
+    def atualizar_lista_palavras(self):
+        lista_ordenada = sorted(self.palavras_erradas)
+        self.model_palavras.setStringList(lista_ordenada)
+
+    def salvar_palavras_erradas(self):
+        if not self.palavras_erradas:
+            return
+
+        caminho, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Missing Words",
+            "",
+            "Text Files (*.txt)"
+        )
+
+        if caminho:
+            with open(caminho, "w", encoding="utf-8") as f:
+                for palavra in sorted(self.palavras_erradas):
+                    f.write(palavra + "\n")
 
     def atualizar_acuracia(self):
         perc = (self.total_acertos / self.total_palavras) * 100 if self.total_palavras else 0
@@ -538,9 +643,9 @@ if __name__ == "__main__":
     '''
     
     app = QApplication(sys.argv)
-    app.setApplicationName(about.__package__) 
-    
+    app.setApplicationName(about.__package__)
+
     janela = SpeechReadingTrainer()
     janela.show()
-    
+
     sys.exit(app.exec_())
