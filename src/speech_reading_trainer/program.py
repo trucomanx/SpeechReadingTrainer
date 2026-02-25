@@ -155,11 +155,13 @@ def transcricao_com_cores(transcrito, original):
             html += f'<span style="color:red">{w}</span> '
     return html.strip()
 
+
 # ==========================
-# Classe principal QMainWindow
+# Main Window
 # ==========================
 
-class LeituraApp(QMainWindow):
+class SpeechReadingTrainer(QMainWindow):
+
     transcricao_pronta = pyqtSignal(str)
     grava_finalizada = pyqtSignal()
 
@@ -178,7 +180,7 @@ class LeituraApp(QMainWindow):
         self.index_frase = 0
         self.total_palavras = 0
         self.total_acertos = 0
-        self.audio_path = "gravado.wav"
+        self.audio_path = "recorded.wav"
 
         self.transcricao_pronta.connect(self.atualizar_transcricao)
         self.grava_finalizada.connect(self.gravacao_finalizada)
@@ -442,7 +444,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     app.setApplicationName(about.__package__) 
     
-    janela = LeituraApp()
+    janela = SpeechReadingTrainer()
     janela.show()
     
     sys.exit(app.exec_())
