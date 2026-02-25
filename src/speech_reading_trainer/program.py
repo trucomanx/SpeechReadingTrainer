@@ -36,14 +36,53 @@ CONFIG_PATH = os.path.join( os.path.expanduser("~"),
                             "config.json" )
 
 DEFAULT_CONTENT={   
+    # Toolbar
     "toolbar_configure": "Configure",
-    "toolbar_configure_tooltip": "Open the configure Json file of program GUI",
+    "toolbar_configure_tooltip": "Open the configuration JSON file to customize the GUI texts and settings",
     "toolbar_about": "About",
-    "toolbar_about_tooltip": "About the program",
+    "toolbar_about_tooltip": "Show information about this program",
     "toolbar_coffee": "Coffee",
-    "toolbar_coffee_tooltip": "Buy me a coffee (TrucomanX)",
+    "toolbar_coffee_tooltip": "Support the developer (TrucomanX)",
+
+    # Window
     "window_width": 1024,
-    "window_height": 800
+    "window_height": 400,
+
+    # Main buttons and labels
+    "button_open_file": "Select Text File",
+    "button_open_file_tooltip": "Select a text file to start reading practice",
+
+    "label_progress": "Progress:",
+    "label_progress_tooltip": "Shows how many sentences have been completed",
+
+    "label_accuracy": "Current Accuracy: 0.00%",
+    "label_accuracy_tooltip": "Displays accumulated word accuracy percentage",
+
+    "label_current_sentence": "Current Sentence:",
+    "label_current_sentence_tooltip": "Sentence you must read aloud",
+
+    "button_tts": "Listen (TTS)",
+    "button_tts_tooltip": "Play the sentence using text-to-speech",
+
+    "button_record": "Record",
+    "button_record_tooltip": "Start recording your voice",
+
+    "button_stop": "Stop Recording",
+    "button_stop_tooltip": "Stop the current voice recording",
+
+    "button_play_recording": "Play Recording",
+    "button_play_recording_tooltip": "Play your recorded voice",
+
+    "label_transcription": "Transcription:",
+    "label_transcription_tooltip": "Automatic speech recognition result",
+
+    "button_evaluate": "Evaluate / Next",
+    "button_evaluate_tooltip": "Evaluate pronunciation and move to next sentence",
+
+    "file_dialog_title": "Open Text File",
+    "file_dialog_filter": "Text Files (*.txt)",
+
+    "final_message": "Finished! Final Accuracy: {value:.2f}%"
 }
 
 configure.verify_default_config(CONFIG_PATH,default_content=DEFAULT_CONTENT)
@@ -193,54 +232,83 @@ class SpeechReadingTrainer(QMainWindow):
         layout = QVBoxLayout()
 
         # Botão abrir arquivo
-        self.btn_abrir = QPushButton("Selecionar Arquivo")
+        self.btn_abrir = QPushButton(CONFIG["button_open_file"])
+        self.btn_abrir.setIcon(QIcon.fromTheme("document-send"))
+        self.btn_abrir.setToolTip(CONFIG["button_open_file_tooltip"])
         self.btn_abrir.clicked.connect(self.abrir_arquivo)
         layout.addWidget(self.btn_abrir)
 
         # Barra de progresso e acurácia
-        self.label_progresso = QLabel("Progresso:")
+        self.label_progresso = QLabel(CONFIG["label_progress"])
+        self.label_progresso.setToolTip(CONFIG["label_progress_tooltip"])
         layout.addWidget(self.label_progresso)
+
         self.progress = QProgressBar()
+        self.progress.setToolTip(CONFIG["label_progress_tooltip"])
         layout.addWidget(self.progress)
-        self.label_acuracia = QLabel("Acurácia atual: 0.00%")
+
+        self.label_acuracia = QLabel(CONFIG["label_accuracy"])
+        self.label_acuracia.setToolTip(CONFIG["label_accuracy_tooltip"])
         layout.addWidget(self.label_acuracia)
 
         # Frase atual
-        layout.addWidget(QLabel("Frase atual:"))
+        self.label_sentence = QLabel(CONFIG["label_current_sentence"])
+        self.label_sentence.setToolTip(CONFIG["label_current_sentence_tooltip"])
+        layout.addWidget(self.label_sentence)
+
         self.text_frase = QTextEdit()
         self.text_frase.setReadOnly(True)
+        self.text_frase.setToolTip(CONFIG["label_current_sentence_tooltip"])
         layout.addWidget(self.text_frase)
 
         # Botão TTS
-        self.btn_tts = QPushButton("Ouvir TTS")
+        self.btn_tts = QPushButton(CONFIG["button_tts"])
+        self.btn_tts.setIcon(QIcon.fromTheme("audio-volume-high"))
+        self.btn_tts.setToolTip(CONFIG["button_tts_tooltip"])
         self.btn_tts.setEnabled(False)
         self.btn_tts.clicked.connect(self.ouvir_tts)
         layout.addWidget(self.btn_tts)
 
         # Botões gravação
         h_layout = QHBoxLayout()
-        self.btn_gravar = QPushButton("Gravar")
+
+        self.btn_gravar = QPushButton(CONFIG["button_record"])
+        self.btn_gravar.setIcon(QIcon.fromTheme("media-record"))
+        self.btn_gravar.setToolTip(CONFIG["button_record_tooltip"])
         self.btn_gravar.setEnabled(False)
         self.btn_gravar.clicked.connect(self.gravar)
         h_layout.addWidget(self.btn_gravar)
-        self.btn_parar = QPushButton("Parar Gravação")
+
+        self.btn_parar = QPushButton(CONFIG["button_stop"])
+        self.btn_parar.setIcon(QIcon.fromTheme("media-playback-stop"))
+        self.btn_parar.setToolTip(CONFIG["button_stop_tooltip"])
         self.btn_parar.setEnabled(False)
         self.btn_parar.clicked.connect(self.parar_gravacao)
         h_layout.addWidget(self.btn_parar)
-        self.btn_ouvir = QPushButton("Ouvir Gravação")
+
+        self.btn_ouvir = QPushButton(CONFIG["button_play_recording"])
+        self.btn_ouvir.setIcon(QIcon.fromTheme("audio-volume-high"))
+        self.btn_ouvir.setToolTip(CONFIG["button_play_recording_tooltip"])
         self.btn_ouvir.setEnabled(False)
         self.btn_ouvir.clicked.connect(self.ouvir_gravado)
         h_layout.addWidget(self.btn_ouvir)
+
         layout.addLayout(h_layout)
 
         # Texto transcrito
-        layout.addWidget(QLabel("Transcrição:"))
+        self.label_trans = QLabel(CONFIG["label_transcription"])
+        self.label_trans.setToolTip(CONFIG["label_transcription_tooltip"])
+        layout.addWidget(self.label_trans)
+
         self.text_transcrito = QTextEdit()
         self.text_transcrito.setReadOnly(True)
+        self.text_transcrito.setToolTip(CONFIG["label_transcription_tooltip"])
         layout.addWidget(self.text_transcrito)
 
-        # Botão Avaliar (avança e mostra cores)
-        self.btn_avaliar = QPushButton("Avaliar / Seguinte")
+        # Botão Avaliar
+        self.btn_avaliar = QPushButton(CONFIG["button_evaluate"])
+        self.btn_avaliar.setIcon(QIcon.fromTheme("document-page-setup"))
+        self.btn_avaliar.setToolTip(CONFIG["button_evaluate_tooltip"])
         self.btn_avaliar.setEnabled(False)
         self.btn_avaliar.clicked.connect(self.avaliar)
         layout.addWidget(self.btn_avaliar)
@@ -328,7 +396,12 @@ class SpeechReadingTrainer(QMainWindow):
     # ==========================
 
     def abrir_arquivo(self):
-        arquivo, _ = QFileDialog.getOpenFileName(self, "Abrir Arquivo", "", "Text Files (*.txt)")
+        arquivo, _ = QFileDialog.getOpenFileName(
+            self, 
+            CONFIG["file_dialog_title"], 
+            "", 
+            CONFIG["file_dialog_filter"]
+        )
         if arquivo:
             self.frases = ler_e_separar_texto(arquivo)
             self.index_frase = 0
@@ -400,8 +473,18 @@ class SpeechReadingTrainer(QMainWindow):
             self.text_transcrito.clear()
         else:
             precisao = (self.total_acertos / self.total_palavras) * 100 if self.total_palavras else 0
-            self.text_frase.setText(f"Fim! Curácia final: {precisao:.2f}%")
+
+            mensagem_final = CONFIG["final_message"].format(value=precisao)
+
+            QMessageBox.information(
+                self,
+                about.__program_name__,
+                mensagem_final
+            )
+
+            self.text_frase.setText(mensagem_final)
             self.text_transcrito.clear()
+
             self.btn_tts.setEnabled(False)
             self.btn_gravar.setEnabled(False)
             self.btn_parar.setEnabled(False)
@@ -410,7 +493,7 @@ class SpeechReadingTrainer(QMainWindow):
 
     def atualizar_acuracia(self):
         perc = (self.total_acertos / self.total_palavras) * 100 if self.total_palavras else 0
-        self.label_acuracia.setText(f"Acurácia atual: {perc:.2f}%")
+        self.label_acuracia.setText(f"Current Accuracy: {perc:.2f}%")
 
 # ==========================
 # Executar aplicação
