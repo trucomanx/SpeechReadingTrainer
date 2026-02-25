@@ -111,7 +111,8 @@ def comparar_frases_bag_of_words(original, transcrito):
     total = len(original_words)
     return acertos, total
 
-def gravar_audio(destino="gravado.wav"):
+
+def gravar_audio(destino):
     r = sr.Recognizer()
     with sr.Microphone() as source:
         print("Gravando...")
@@ -119,7 +120,7 @@ def gravar_audio(destino="gravado.wav"):
         print("Gravação finalizada.")
     with open(destino, "wb") as f:
         f.write(audio.get_wav_data())
-    return destino
+
 
 def transcrever_audio(caminho_audio):
     r = sr.Recognizer()
