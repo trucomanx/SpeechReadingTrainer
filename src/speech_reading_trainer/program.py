@@ -10,7 +10,7 @@ import subprocess
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QPushButton, QTextEdit, QLabel,
     QProgressBar, QFileDialog, QVBoxLayout, QWidget, QHBoxLayout,
-    QSizePolicy, QAction
+    QSizePolicy, QAction, QMessageBox
 )
 from PyQt5.QtCore import Qt, pyqtSignal, QUrl
 from PyQt5.QtGui import QIcon, QDesktopServices
