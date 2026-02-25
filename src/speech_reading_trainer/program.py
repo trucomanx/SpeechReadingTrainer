@@ -476,11 +476,24 @@ class SpeechReadingTrainer(QMainWindow):
 
             mensagem_final = CONFIG["final_message"].format(value=precisao)
 
-            QMessageBox.information(
-                self,
-                about.__program_name__,
-                mensagem_final
-            )
+            msg = QMessageBox(self)
+            msg.setWindowTitle(about.__program_name__)
+            msg.setText(mensagem_final)
+
+            # Ícone customizado do tema
+            if   precisao>83.3333:
+                icon = QIcon.fromTheme("trophy-bronze")
+            elif precisao>66.6667:
+                icon = QIcon.fromTheme("trophy-silver")
+            elif precisao>50:
+                icon = QIcon.fromTheme("trophy-gold")
+            
+            if not icon.isNull():
+                msg.setIconPixmap(icon.pixmap(64, 64))
+            else:
+                msg.setIcon(QMessageBox.Information)  # fallback
+
+            msg.exec_()
 
             self.text_frase.setText(mensagem_final)
             self.text_transcrito.clear()
