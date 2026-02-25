@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "speech_reading_trainer"
+version = "0.1.0"
+description = "A desktop application that helps users improve reading fluency and pronunciation by combining text-to-speech playback, voice recording, automatic transcription, and real-time accuracy feedback."
+readme = "README.md"
+authors = [{name = "Fernando Pujaico Rivera", email = "fernando.pujaico.rivera@gmail.com"}]
+maintainers = [{name = "Fernando Pujaico Rivera", email = "fernando.pujaico.rivera@gmail.com"}]
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "GPL-3.0-only WITH Classpath-Exception-2.0 OR BSD-3-Clause"
+license-files = ["LICENSE"]
+keywords = ["writing", "translate"]
+dependencies = [
+    "PyQt5",
+    "SpeechRecognition",
+    "gTTS",
+    "pydub",
+    "PyAudio"
+]
+
+[project.urls]
+"Bug Reports" = "https://github.com/trucomanx/SpeechReadingTrainer/issues"
+"Funding" = "https://trucomanx.github.io/en/funding.html"
+"Documentation" = "https://github.com/trucomanx/SpeechReadingTrainer/tree/main/doc"
+"Source" = "https://github.com/trucomanx/SpeechReadingTrainer"
+
+[project.scripts]
+"speech-reading-trainer" = "speech_reading_trainer.program:main"
+
+[tool.setuptools]
+packages = ["speech_reading_trainer", "speech_reading_trainer.modules"]
+
+[tool.setuptools.package-data]
+"speech_reading_trainer" = ["icons/logo.png"]

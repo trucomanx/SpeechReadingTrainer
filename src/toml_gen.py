@@ -46,7 +46,10 @@ license-files = ["LICENSE"]
 keywords = ["writing", "translate"]
 dependencies = [
     "PyQt5",
-    "deep-consultation"
+    "SpeechRecognition",
+    "gTTS",
+    "pydub",
+    "PyAudio"
 ]
 
 [project.urls]

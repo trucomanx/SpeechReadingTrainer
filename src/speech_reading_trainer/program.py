@@ -80,6 +80,13 @@ DEFAULT_CONTENT={
     "file_dialog_title": "Open Text File",
     "file_dialog_filter": "Text Files (*.txt)",
 
+    "button_save_missing_words": "Save Missing Words",
+    "button_delete_missing_words": "Delete Missing Words",
+    
+    "msg_confirm": "Confirm",
+    "msg_delete_words": "Do you really want to delete all the accumulated words?",
+    "msg_save_missing_words": "Save Missing Words",
+
     "final_message": "Finished! Final Accuracy: {value:.2f}%"
 }
 
@@ -333,12 +340,13 @@ class SpeechReadingTrainer(QMainWindow):
         self.list_view.setModel(self.model_palavras)
         right_layout.addWidget(self.list_view)
 
-        self.btn_salvar_lista = QPushButton("Save Missing Words")
+
+        self.btn_salvar_lista = QPushButton(CONFIG["button_save_missing_words"])
         self.btn_salvar_lista.setIcon(QIcon.fromTheme("document-save"))
         self.btn_salvar_lista.clicked.connect(self.salvar_palavras_erradas)
         right_layout.addWidget(self.btn_salvar_lista)
         
-        self.btn_delete_lista = QPushButton("Delete Missing Words")
+        self.btn_delete_lista = QPushButton(CONFIG["button_delete_missing_words"])
         self.btn_delete_lista.setIcon(QIcon.fromTheme("edit-delete"))
         self.btn_delete_lista.clicked.connect(self.apagar_lista_palavras)
         right_layout.addWidget(self.btn_delete_lista)
@@ -405,10 +413,11 @@ class SpeechReadingTrainer(QMainWindow):
         self.on_update_spacer_policy()
 
     def apagar_lista_palavras(self):
+
         resposta = QMessageBox.question(
             self,
-            "Confirmar",
-            "Deseja realmente apagar todas as palavras acumuladas?",
+            CONFIG["msg_confirm"],
+            CONFIG["msg_delete_words"],
             QMessageBox.Yes | QMessageBox.No,
             QMessageBox.No
         )
@@ -596,10 +605,10 @@ class SpeechReadingTrainer(QMainWindow):
     def salvar_palavras_erradas(self):
         if not self.palavras_erradas:
             return
-
+        
         caminho, _ = QFileDialog.getSaveFileName(
             self,
-            "Save Missing Words",
+            CONFIG["msg_save_missing_words"],
             "",
             "Text Files (*.txt)"
         )
