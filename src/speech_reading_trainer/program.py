@@ -2,6 +2,7 @@
 import sys
 import os
 import io
+import signal
 import string
 import threading
 import subprocess
